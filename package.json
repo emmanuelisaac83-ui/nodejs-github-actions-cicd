@@ -1,7 +1,7 @@
 {
-  "name": "myapp",
+  "name": "nodejs-github-actions-cicd",
   "version": "1.0.0",
-  "description": "",
+  "description": "Node.js application demonstrating automated testing and GitHub Actions CI.",
   "main": "index.js",
   "scripts": {
     "test": "node --test",
