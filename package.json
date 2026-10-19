@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "start": "node index.js",
     "start-server": "node server.js && npm start",
     "open": "concurrently \"http-server -a localhost -p 3000\" \"open http://localhost:3000\""
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "concurrently": "^6.3.0",
-    "http-server": "^14.0.0"
+    "http-server": "^14.0.0",
+    "supertest": "^7.3.1"
   }
 }

@@ -1,18 +1,26 @@
+
 const express = require('express');
 const app = express();
 
-// specify default engine
+// Set the default template engine.
 app.set('view engine', 'ejs');
 
-// To server static content like styles
+// Serve static files from the public directory.
 app.use(express.static('public'));
 
-app.get('/', (req, res) =>
-    // renders text only
-    //res.send('Hello World!'));
+// Render the home page.
+app.get('/', (req, res) => {
+    res.render('index');
+});
 
-    // Renders views/index.js
-    res.render('index')
-)
-// server will listen on http://localhost:3000/
-app.listen(3000, () => console.log('app running'))
+// Export the app so automated tests can use it.
+module.exports = app;
+
+// Start the server only when this file is run directly.
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+
+    app.listen(PORT, () => {
+        console.log(`App running on port ${PORT}`);
+    });
+}
