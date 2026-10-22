@@ -25,15 +25,18 @@ jobs:
         shell: bash
         run: |
           cat > deploy.sh <<'EOF'
-                    set -e
+          set -e
           export HOME=/root
           APP_DIR=/home/ubuntu/nodejs-github-actions-cicd
+          chown -R ubuntu:ubuntu "$APP_DIR"
           cd "$APP_DIR"
           sudo -u ubuntu git config --global --add safe.directory "$APP_DIR"
           sudo -u ubuntu git fetch origin main
           sudo -u ubuntu git reset --hard origin/main
           sudo -u ubuntu npm ci --omit=dev
+          chown -R ubuntu:ubuntu "$APP_DIR"
           systemctl restart nodejs-app
+
           echo "Waiting for Node.js on port 3000..."
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3000/ >/dev/null; then
