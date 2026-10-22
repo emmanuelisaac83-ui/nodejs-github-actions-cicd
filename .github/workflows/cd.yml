@@ -1,0 +1,92 @@
+
+name: Node.js CI/CD to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test and audit application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run automated tests
+        run: npm test
+
+      - name: Check dependency security
+        run: npm audit
+
+  deploy:
+    name: Deploy to EC2 through AWS Systems Manager
+    needs: test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Send deployment command to EC2
+        shell: bash
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy Node.js application from GitHub Actions" \
+            --parameters 'commands=["set -e","cd /home/ubuntu/nodejs-github-actions-cicd","git fetch origin main","git reset --hard origin/main","npm ci --omit=dev","sudo systemctl restart nodejs-app","sudo systemctl is-active --quiet nodejs-app","curl -fsS http://127.0.0.1/ >/dev/null","echo Deployment completed successfully"]' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM command ID: $COMMAND_ID"
+
+          for i in $(seq 1 30); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+              --query Status \
+              --output text 2>/dev/null || true)
+
+            echo "Deployment status: ${STATUS:-Pending}"
+
+            case "$STATUS" in
+              Success)
+                echo "Deployment completed successfully."
+                exit 0
+                ;;
+              Failed|Cancelled|TimedOut)
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+                  --output json
+                exit 1
+                ;;
+            esac
+
+            sleep 5
+          done
+
+          echo "Timed out waiting for deployment."
+          exit 1
