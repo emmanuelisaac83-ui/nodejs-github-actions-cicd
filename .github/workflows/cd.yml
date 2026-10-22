@@ -57,7 +57,7 @@ jobs:
             --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy Node.js application from GitHub Actions" \
-            --parameters 'commands=["set -e","cd /home/ubuntu/nodejs-github-actions-cicd","git config --global --add safe.directory /home/ubuntu/nodejs-github-actions-cicd","git fetch origin main","git reset --hard origin/main","npm ci --omit=dev","sudo systemctl restart nodejs-app","sudo systemctl is-active --quiet nodejs-app","curl -fsS http://127.0.0.1/ >/dev/null","echo Deployment completed successfully"]' \
+            --parameters 'commands=["set -e","cd /home/ubuntu/nodejs-github-actions-cicd","git config --global --add safe.directory /home/ubuntu/nodejs-github-actions-cicd","git fetch origin main","git reset --hard origin/main","npm ci --omit=dev","sudo systemctl restart nodejs-app","sudo systemctl is-active --quiet nodejs-app","for i in $(seq 1 30); do if curl -fsS http://127.0.0.1/ >/dev/null; then echo Health check passed; break; fi; echo Waiting for application...; sleep 1; done","curl -fsS http://127.0.0.1/ >/dev/null","echo Deployment completed successfully"]' \
             --query "Command.CommandId" \
             --output text)
 
